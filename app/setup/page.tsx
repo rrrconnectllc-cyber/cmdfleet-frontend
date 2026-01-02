@@ -19,7 +19,7 @@ export default function SetupPage() {
   const [linuxConnected, setLinuxConnected] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
 
-  // --- 2. SAVE AZURE (Connects to Supabase) ---
+  // --- 2. SAVE AZURE (Connects to Supabase) --- 
   const handleSaveAzure = async () => {
     setIsSaving(true);
     try {
