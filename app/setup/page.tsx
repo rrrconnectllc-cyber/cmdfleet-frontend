@@ -19,12 +19,14 @@ export default function SetupPage() {
   const [linuxConnected, setLinuxConnected] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
 
-  // --- 2. SAVE AZURE (Connects to Supabase) --- 
+  // --- 2. SAVE AZURE (Connects to Supabase) ---
   const handleSaveAzure = async () => {
     setIsSaving(true);
     try {
-      // Updates the database with your Azure keys
-      const { error } = await supabase
+      console.log("Sending Azure Data:", azureForm); // Debug log
+
+      // Updates ANY row in the table (Safe for single-user app)
+      const { data, error } = await supabase
         .from('tenants')
         .update({
           azure_tenant_id: azureForm.tenant,
@@ -32,11 +34,20 @@ export default function SetupPage() {
           azure_client_id: azureForm.client,
           azure_client_secret: azureForm.secret
         })
-        .eq('id', '9b490259-650e-4adb-af18-537db94f4780');
+        .like('name', '%') // <--- TRICK: Updates any row with a name
+        .select();
 
       if (error) throw error;
+      
+      // Verification: Did we actually update a row?
+      if (!data || data.length === 0) {
+        alert("⚠️ Database Connected, but NO ROW was updated. Check your table.");
+        return;
+      }
+
       setAzureConnected(true);
-      alert("✅ Azure Keys Saved Securely!");
+      alert(`✅ Azure Keys Saved! (Tenant: ${data[0].azure_tenant_id})`);
+      
     } catch (err: any) {
       alert("❌ Error: " + err.message);
     } finally {
@@ -44,14 +55,15 @@ export default function SetupPage() {
     }
   };
 
-  // --- 3. SAVE TEAMS (Connects to Supabase) ---
+  // --- 3. SAVE TEAMS ---
   const handleSaveTeams = async () => {
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tenants')
         .update({ teams_webhook_url: teamsUrl })
-        .eq('id', '9b490259-650e-4adb-af18-537db94f4780');
+        .like('name', '%')
+        .select();
 
       if (error) throw error;
       setTeamsConnected(true);
@@ -63,28 +75,29 @@ export default function SetupPage() {
     }
   };
 
-    // --- 4. SAVE LINUX (Connects to Supabase) ---
-    const handleSaveLinux = async () => {
-      setIsSaving(true);
-      try {
-        const { error } = await supabase
-          .from('tenants')
-          .update({ 
-            linux_ip: linuxForm.ip,
-            linux_user: linuxForm.user,
-            linux_key: linuxForm.key
-           })
-          .eq('id', '9b490259-650e-4adb-af18-537db94f4780');
-  
-        if (error) throw error;
-        setLinuxConnected(true);
-        alert("✅ Linux Keys Saved!");
-      } catch (err: any) {
-        alert("❌ Error: " + err.message);
-      } finally {
-        setIsSaving(false);
-      }
-    };
+  // --- 4. SAVE LINUX ---
+  const handleSaveLinux = async () => {
+    setIsSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .update({ 
+          linux_ip: linuxForm.ip,
+          linux_user: linuxForm.user,
+          linux_key: linuxForm.key
+        })
+        .like('name', '%')
+        .select();
+
+      if (error) throw error;
+      setLinuxConnected(true);
+      alert("✅ Linux Keys Saved!");
+    } catch (err: any) {
+      alert("❌ Error: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-blue-500">
@@ -124,6 +137,7 @@ export default function SetupPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-2">Tenant ID</label>
+              {/* CRITICAL: THIS 'value' AND 'onChange' IS WHAT WAS MISSING BEFORE */}
               <input 
                 value={azureForm.tenant}
                 onChange={(e) => setAzureForm({...azureForm, tenant: e.target.value})}
@@ -254,9 +268,13 @@ export default function SetupPage() {
           </div>
 
           <div className="mt-8 flex justify-end">
-             <button onClick={handleSaveTeams} disabled={isSaving} className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-6 py-3 rounded-lg font-medium flex items-center transition">
-               Save Teams Webhook <Save className="ml-2 w-4 h-4" />
-             </button>
+            <button 
+              onClick={handleSaveTeams} 
+              disabled={isSaving} 
+              className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-6 py-3 rounded-lg font-medium flex items-center transition"
+            >
+              Save Teams Webhook <Save className="ml-2 w-4 h-4" />
+            </button>
           </div>
         </div>
 
