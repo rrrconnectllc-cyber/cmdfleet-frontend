@@ -1,12 +1,29 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient'; 
 import { 
   CheckCircle2, XCircle, Save, Server, MessageSquare, ShieldCheck, Eye, EyeOff, Activity, Terminal 
 } from 'lucide-react';
 
 export default function SetupPage() {
+  const router = useRouter(); // <--- Initialize Router
+
+  // --- SECURITY CHECK 🔒 ---
+  useEffect(() => {
+    const checkUser = async () => {
+      // Ask Supabase: "Is anyone logged in?"
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // If no one is logged in, kick them to the login page
+      if (!session) {
+        router.push('/login');
+      }
+    };
+    checkUser();
+  }, [router]);
+
   // --- 1. THE "MEMORY" (State) ---
   const [azureForm, setAzureForm] = useState({ tenant: '', sub: '', client: '', secret: '' });
   const [teamsUrl, setTeamsUrl] = useState('');
