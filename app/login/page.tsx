@@ -1,107 +1,63 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useRouter } from 'next/navigation';
-import { Terminal, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { Terminal } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      // 1. Ask Supabase if this user exists
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      // 2. If yes, open the door (send to Setup page)
+  // Listen for login events
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_IN') {
       router.push('/setup');
-      
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center p-6 selection:bg-blue-500">
-      
       <div className="w-full max-w-md">
-        {/* LOGO AREA */}
-        <div className="text-center mb-10">
+        
+        {/* LOGO */}
+        <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 mb-6">
             <Terminal className="w-8 h-8 text-blue-500" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome Back</h1>
-          <p className="text-gray-400">Enter your credentials to access the Command Center.</p>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">CMD FLEET</h1>
+          <p className="text-gray-400">Sign in to your Command Center.</p>
         </div>
 
-        {/* LOGIN FORM */}
+        {/* SUPABASE AUTH WIDGET */}
         <div className="bg-zinc-900/50 border border-white/10 rounded-2xl p-8 backdrop-blur-xl">
-          <form onSubmit={handleLogin} className="space-y-6">
-            
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 flex items-center text-red-500 text-sm">
-                <AlertCircle className="w-4 h-4 mr-2" />
-                {error}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-2">Email Address</label>
-              <input 
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition"
-                placeholder="admin@cmdfleet.com"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-2">Password</label>
-              <div className="relative">
-                <input 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition"
-                  placeholder="••••••••••••"
-                  required
-                />
-                <Lock className="absolute right-3 top-3.5 w-4 h-4 text-gray-600" />
-              </div>
-            </div>
-
-            <button 
-              type="submit"
-              disabled={loading}
-              className="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-gray-200 transition flex items-center justify-center disabled:opacity-50"
-            >
-              {loading ? "Verifying..." : "Sign In"}
-              {!loading && <ArrowRight className="ml-2 w-4 h-4" />}
-            </button>
-          </form>
+          <Auth
+            supabaseClient={supabase}
+            appearance={{
+              theme: ThemeSupa,
+              variables: {
+                default: {
+                  colors: {
+                    brand: '#2563eb', // Blue-600
+                    brandAccent: '#1d4ed8', // Blue-700
+                    inputText: 'white',
+                    inputBackground: 'black',
+                    inputBorder: '#3f3f46',
+                  },
+                },
+              },
+              className: {
+                 button: 'font-bold rounded-lg',
+                 input: 'rounded-lg',
+              }
+            }}
+            theme="dark"
+            providers={['google', 'github']} // <--- Adds the Buttons!
+            redirectTo={`${typeof window !== 'undefined' ? window.location.origin : ''}/setup`}
+          />
         </div>
 
-        <p className="text-center text-xs text-gray-600 mt-8">
-          Restricted Area. Unauthorized access is prohibited.
-        </p>
       </div>
     </div>
   );
